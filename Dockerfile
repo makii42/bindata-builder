@@ -1,6 +1,8 @@
 FROM alpine
-RUN apk add --no-cache --virtual .build-deps \
-				git \
+RUN apk add --no-cache \
+			git \
+			make \
+		&& apk add --no-cache --virtual .build-deps \
 				musl-dev \
 				go \ 
 		&& go get -u github.com/go-bindata/go-bindata/... \
