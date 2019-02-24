@@ -1,0 +1,49 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: docker build -t makii42/bindata-builder:latest .
+      - run: mkdir dist &&  docker image save -o ./dist/image makii42/bindata-builder:latest
+      - persist_to_workspace:
+          root: ./dist
+          paths:
+            - "*"
+
+  dist:
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps: 
+      - attach_workspace:
+          at: ./dist
+      - setup_remote_docker
+      - run: docker image load < ./dist/image
+      - run: docker images
+      - run: docker login -u $DOCKER_HUB_USER_ID -p $DOCKER_HUB_PWD
+      - run: docker tag makii42/bindata-builder:latest makii42/bindata-builder:$CIRCLE_TAG
+      - run: docker push makii42/bindata-builder:latest
+      - run: docker push makii42/bindata-builder:$CIRCLE_TAG
+
+workflows:
+  version: 2
+  build_and_dist:
+    jobs: 
+      - build:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+      - dist:
+          requires:
+            - build
+          context: org-global
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/
+              
